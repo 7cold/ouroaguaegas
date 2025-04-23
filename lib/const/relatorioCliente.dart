@@ -24,7 +24,8 @@ Future<void> selectCliente(context) async {
                   child: DropDownSearchField(
                     textFieldConfiguration: TextFieldConfiguration(
                       controller: TextEditingController(text: clienteSelect.value?.nome),
-                      decoration: const InputDecoration(hintText: "Cliente", filled: true),
+                      decoration: const InputDecoration(
+                          hintText: "Cliente", filled: true, suffixIcon: Icon(Icons.search)),
                     ),
                     suggestionsCallback: (pattern) async {
                       return c.clientes.where((e) => e.ativo == true).where((ClienteData option) {

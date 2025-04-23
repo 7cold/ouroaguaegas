@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:ouroaguaegas/data/clientes_data.dart';
+import 'package:ouroaguaegas/ui/vendasUiporCliente.dart';
 import 'package:responsive_ui/responsive_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../const/upperCase.dart';
@@ -299,7 +300,7 @@ class ClientesUi extends StatelessWidget {
                             left: 20,
                             bottom: 20,
                           ),
-                          padding: const EdgeInsets.all(20),
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: Get.theme.primaryColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(10),
@@ -370,20 +371,22 @@ class ClientesUi extends StatelessWidget {
                                           trailing: Wrap(children: [
                                             IconButton.filled(
                                               onPressed: () async {
-                                                var tel = cliente.telefone
-                                                    ?.replaceAll("(", "")
-                                                    .replaceAll(")", "")
-                                                    .replaceAll("-", "")
-                                                    .replaceAll(" ", "")
-                                                    .toString();
+                                                Get.to(() => VendasUiClientes(),
+                                                    arguments: cliente);
+                                                // var tel = cliente.telefone
+                                                //     ?.replaceAll("(", "")
+                                                //     .replaceAll(")", "")
+                                                //     .replaceAll("-", "")
+                                                //     .replaceAll(" ", "")
+                                                //     .toString();
 
-                                                var text = "Olá, tudo bem?";
-                                                await launchUrl(
-                                                    Uri.parse("https://wa.me/+55$tel?text=$text"));
+                                                // var text = "Olá, tudo bem?";
+                                                // await launchUrl(
+                                                //     Uri.parse("https://wa.me/+55$tel?text=$text"));
                                               },
                                               icon: FaIcon(
-                                                size: 17,
-                                                FontAwesomeIcons.whatsapp,
+                                                size: 15,
+                                                FontAwesomeIcons.shoppingCart,
                                                 color: Theme.of(context).colorScheme.inversePrimary,
                                               ),
                                             )

@@ -1,4 +1,6 @@
+import 'package:extended_masked_text/extended_masked_text.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:ouroaguaegas/const/relatorioCliente.dart';
 import 'package:ouroaguaegas/data/clientes_data.dart';
@@ -70,26 +72,196 @@ class DetalhesRelatorio extends StatelessWidget {
     return customSortingDataGridSource;
   }
 
+  Future<void> pagamento(context, ClienteData cliente) async {
+    GlobalKey<FormState> formKey = GlobalKey<FormState>();
+    Rx<MoneyMaskedTextController> valorAbertoC = MoneyMaskedTextController().obs;
+    Rx<MoneyMaskedTextController> valorPagamentoC = MoneyMaskedTextController().obs;
+
+    Rx<num> valorPago = cx.vendas
+        .distinctBy((v) => v.pedido)
+        .where((v) => v.cliente?.id == cliente.id)
+        .fold(0.0, (acc, mapa) => acc + ((mapa.valorPago) ?? 0))
+        .obs;
+
+    Rx<num?> totalCliente =
+        cx.vendas.distinctBy((v) => v.pedido).where((v) => v.cliente?.id == cliente.id).isEmpty
+            ? 0.obs
+            : cx.vendas
+                .distinctBy((v) => v.pedido)
+                .where((v) => v.cliente?.id == cliente.id)
+                .map((venda) => venda.valorTotal)
+                .toList()
+                .reduce((a, b) => (a ?? 0) + (b ?? 0))
+                .obs;
+
+    Rx<num> valorAberto = ((totalCliente.value ?? 0) -
+            cx.vendas
+                .distinctBy((v) => v.pedido)
+                .where((v) => v.cliente?.id == cliente.id)
+                .fold(0.0, (acc, mapa) => acc + ((mapa.valorPago) ?? 0)))
+        .obs;
+
+    valorAbertoC.value.updateValue(valorAberto.value.toDouble());
+
+    Rx<num> valorRestante = ((valorAberto.value) - (valorPagamentoC.value.numberValue)).obs;
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return Obx(
+          () => AlertDialog(
+            title: Text('Pagamento'),
+            content: SingleChildScrollView(
+              child: ListBody(
+                children: [
+                  Form(
+                    key: formKey,
+                    child: ListBody(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: TextField(
+                            controller: valorAbertoC.value,
+                            enabled: false,
+                            decoration: InputDecoration(labelText: 'Valor em Aberto', filled: true),
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: TextFormField(
+                            controller: valorPagamentoC.value,
+                            onChanged: (value) {
+                              valorRestante.value = (valorAbertoC.value.numberValue) -
+                                  valorPagamentoC.value.numberValue;
+                            },
+                            decoration: InputDecoration(labelText: 'Valor Pago', filled: true),
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              valorPagamentoC.refresh();
+                              return valorPagamentoC.value.numberValue > (valorAberto.value)
+                                  ? 'Não pode ser maior que total aberto'
+                                  : null;
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: Text("Valor Restante: ${cx.real.format(valorRestante.value)}"),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Voltar'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              FilledButton(
+                onPressed: () async {
+                  final FormState? form = formKey.currentState;
+                  if (form!.validate()) {
+                    num vlrpago = valorPagamentoC.value.numberValue;
+
+                    for (var venda in cx.vendas
+                        .distinctBy((v) => v.pedido)
+                        .where((p0) => p0.cliente?.id == cliente.id)
+                        .where((p0) => p0.valorTotal != p0.valorPago)) {
+                      num valorAberto = (venda.valorTotal ?? 0) - (venda.valorPago ?? 0);
+
+                      // Saldo de pagamento foi totalmente utilizado
+                      if (vlrpago <= 0) {
+                        break;
+                      }
+                      //  Pedido pago integralmente. Saldo restante
+                      if (vlrpago >= valorAberto) {
+                        venda.valorPago = (venda.valorPago ?? 0) + valorAberto;
+                        vlrpago -= valorAberto;
+                        await cx.updateValorPagamento(venda);
+                        Get.back();
+                      } else {
+                        //Pagamento parcial de valor aplicado ao pedido. Valor em aberto restante
+                        venda.valorPago = (venda.valorPago ?? 0) + vlrpago;
+                        await cx.updateValorPagamento(venda);
+                        Get.back();
+                        vlrpago = 0;
+                        break;
+                      }
+                    }
+                    //Ainda restam para serem usados em próximos pedidos
+                    if (vlrpago > 0) {}
+                  }
+                },
+                child: const Text('Salvar'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final ClienteData cliente = Get.arguments ?? ClienteData();
 
-    print(cx.vendas
+    Rx<num> valorPago = cx.vendas
         .distinctBy((v) => v.pedido)
         .where((v) => v.cliente?.id == cliente.id)
-        .map((venda) => venda.valorTotal));
+        .fold(0.0, (acc, mapa) => acc + ((mapa.valorPago) ?? 0))
+        .obs;
+
+    Rx<num?> totalCliente =
+        cx.vendas.distinctBy((v) => v.pedido).where((v) => v.cliente?.id == cliente.id).isEmpty
+            ? 0.obs
+            : cx.vendas
+                .distinctBy((v) => v.pedido)
+                .where((v) => v.cliente?.id == cliente.id)
+                .map((venda) => venda.valorTotal)
+                .toList()
+                .reduce((a, b) => (a ?? 0) + (b ?? 0))
+                .obs;
+
+    Rx<num> valorAberto = ((totalCliente.value ?? 0) -
+            cx.vendas
+                .distinctBy((v) => v.pedido)
+                .where((v) => v.cliente?.id == cliente.id)
+                .fold(0.0, (acc, mapa) => acc + ((mapa.valorPago) ?? 0)))
+        .obs;
 
     return Scaffold(
         appBar: AppBar(
           title: Text(cliente.nome ?? ""),
           actions: [
             Tooltip(
+                message: "Pagamento",
+                child: IconButton(
+                    onPressed: valorAberto.value <= 0
+                        ? null
+                        : () {
+                            pagamento(context, cliente);
+                          },
+                    icon: Icon(Icons.attach_money_rounded))),
+            Tooltip(
                 message: "Imprimir",
                 child: IconButton(
-                    onPressed: () {
-                      Get.to(() => RelatorioVendasPdf(), arguments: cliente);
-                    },
-                    icon: Icon(Icons.print_outlined)))
+                    onPressed: cx.vendas
+                            .distinctBy((v) => v.pedido)
+                            .where((v) => v.cliente?.id == cliente.id)
+                            .isEmpty
+                        ? null
+                        : () {
+                            Get.to(() => RelatorioVendasPdf(), arguments: cliente);
+                          },
+                    icon: Icon(Icons.print_outlined))),
           ],
         ),
         bottomNavigationBar: Container(
@@ -102,16 +274,16 @@ class DetalhesRelatorio extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Text(
-                  "Pagos: ${cx.real.format(cx.vendas.distinctBy((v) => v.pedido).where((v) => v.cliente?.id == cliente.id).fold(0.0, (acc, mapa) => acc + ((mapa.valorPago) ?? 0)))}",
+                  "Pagos: ${cx.real.format(valorPago.value)}",
                   style: TextStyle(fontSize: 16, color: Colors.green, fontWeight: FontWeight.w600),
                 ),
                 Text(
-                  "Em Aberto: ${cx.real.format(cx.vendas.where((v) => v.cliente?.id == cliente.id).fold(0.0, (acc, mapa) => acc + ((mapa.produto?.valor ?? 0) * (mapa.qtd ?? 0))) - cx.vendas.distinctBy((v) => v.pedido).where((v) => v.cliente?.id == cliente.id).fold(0.0, (acc, mapa) => acc + ((mapa.valorPago) ?? 0)))}",
+                  "Em Aberto: ${cx.real.format(valorAberto.value)}",
                   style: TextStyle(fontSize: 16, color: Colors.red, fontWeight: FontWeight.w600),
                 ),
                 Divider(),
                 Text(
-                  "Total em Compras: ${cx.real.format(cx.vendas.where((v) => v.cliente?.id == cliente.id).fold(0.0, (acc, mapa) => acc + ((mapa.produto?.valor ?? 0) * (mapa.qtd ?? 0))))}",
+                  "Total em Compras: ${cx.real.format(totalCliente.value)}",
                   style: Get.theme.textTheme.titleMedium,
                 ),
               ],

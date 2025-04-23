@@ -3,22 +3,24 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ouroaguaegas/const/createVendas.dart';
 import 'package:ouroaguaegas/const/editarPedidoPagEntrega.dart';
+import 'package:ouroaguaegas/data/clientes_data.dart';
 import 'package:responsive_ui/responsive_ui.dart';
 import '../controller/controller.dart';
 
-class VendasUi extends StatelessWidget {
+class VendasUiClientes extends StatelessWidget {
   final Controller c = Get.put(Controller());
+  ClienteData clienteData = Get.arguments;
 
   @override
   Widget build(BuildContext context) {
     Rxn<DateTime> data = Rxn(DateTime(DateTime.now().year, DateTime.now().month, 1));
     return Obx(() {
-      var agrupado = groupBy(c.vendas.where((p0) => p0.dataVenda!.month == data.value!.month),
-          (venda) => venda.pedido);
+      var agrupado = groupBy(
+          c.vendas.where((p0) => p0.cliente!.id == clienteData.id), (venda) => venda.pedido);
       return Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.transparent,
-          title: Text('Vendas'),
+          title: Text('Vendas por Cliente'),
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 10),
@@ -37,40 +39,6 @@ class VendasUi extends StatelessWidget {
             : Flex(
                 direction: Axis.vertical,
                 children: [
-                  AppBar(
-                    automaticallyImplyLeading: false,
-                    flexibleSpace: Container(
-                      height: 50,
-                      color: Theme.of(context).colorScheme.inversePrimary,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          IconButton(
-                              onPressed: () {
-                                data.value = DateTime(
-                                  data.value!.year,
-                                  data.value!.month - 1,
-                                  data.value!.day,
-                                );
-                              },
-                              icon: Icon(Icons.arrow_back_ios_new_rounded)),
-                          Text(
-                            c.dateFormatterMes.format(data.value ?? DateTime.now()),
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                          IconButton(
-                              onPressed: () {
-                                data.value = DateTime(
-                                  data.value!.year,
-                                  data.value!.month + 1,
-                                  data.value!.day,
-                                );
-                              },
-                              icon: Icon(Icons.arrow_forward_ios_rounded)),
-                        ],
-                      ),
-                    ),
-                  ),
                   Expanded(
                     child: Div(
                       divison: Division(colXL: 5),
@@ -154,7 +122,7 @@ class VendasUi extends StatelessWidget {
                                                         : "Retirada",
                                                     child: Icon(
                                                       vendasPorPedido.first.tipoEntrega == "Entrega"
-                                                          ? Icons.motorcycle_outlined
+                                                          ? Icons.local_shipping_outlined
                                                           : Icons.transfer_within_a_station_rounded,
                                                       size: 18,
                                                       color: Get.theme.colorScheme.primary,

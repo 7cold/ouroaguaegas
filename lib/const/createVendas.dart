@@ -125,56 +125,56 @@ Future<void> createVendasDialog(context) async {
                           },
                         ),
                       ),
-                      Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: Flex(
-                            direction: Axis.horizontal,
-                            children: [
-                              Expanded(
-                                child: RadioListTile(
-                                    title: Tooltip(
-                                        message: 'Entrega',
-                                        child: Column(
-                                          children: [
-                                            Icon(Icons.local_shipping_outlined),
-                                            Text("Entrega", style: TextStyle(fontSize: 11)),
-                                          ],
-                                        )),
-                                    value: tipoEntrega.value == "Entrega" ? 1 : 0,
-                                    selected: tipoEntrega.value == "Entrega" ? true : false,
-                                    groupValue: 1,
-                                    onChanged: (_) {
-                                      tipoEntrega.value = "Entrega";
-                                    }),
-                              ),
-                              Expanded(
-                                child: RadioListTile(
-                                    title: Tooltip(
-                                        message: 'Retirada',
-                                        child: Column(
-                                          children: [
-                                            Icon(Icons.transfer_within_a_station_outlined),
-                                            Text("Retirada", style: TextStyle(fontSize: 11)),
-                                          ],
-                                        )),
-                                    value: tipoEntrega.value != "Entrega" ? 1 : 0,
-                                    selected: tipoEntrega.value != "Entrega" ? true : false,
-                                    groupValue: 1,
-                                    onChanged: (_) {
-                                      tipoEntrega.value = "Retirada";
-                                    }),
-                              ),
-                            ],
-                          )),
+                      Flex(
+                        direction: Axis.horizontal,
+                        children: [
+                          Expanded(
+                            child: RadioListTile(
+                                dense: true,
+                                title: Tooltip(
+                                    message: 'Entrega',
+                                    child: Column(
+                                      children: [
+                                        Icon(Icons.motorcycle_outlined),
+                                        Text("Entrega", style: TextStyle(fontSize: 11)),
+                                      ],
+                                    )),
+                                value: tipoEntrega.value == "Entrega" ? 1 : 0,
+                                selected: tipoEntrega.value == "Entrega" ? true : false,
+                                groupValue: 1,
+                                onChanged: (_) {
+                                  tipoEntrega.value = "Entrega";
+                                }),
+                          ),
+                          Expanded(
+                            child: RadioListTile(
+                                dense: true,
+                                title: Tooltip(
+                                    message: 'Retirada',
+                                    child: Column(
+                                      children: [
+                                        Icon(Icons.transfer_within_a_station_outlined),
+                                        Text("Retirada", style: TextStyle(fontSize: 11)),
+                                      ],
+                                    )),
+                                value: tipoEntrega.value != "Entrega" ? 1 : 0,
+                                selected: tipoEntrega.value != "Entrega" ? true : false,
+                                groupValue: 1,
+                                onChanged: (_) {
+                                  tipoEntrega.value = "Retirada";
+                                }),
+                          ),
+                        ],
+                      ),
                       Column(
                         children: listapedido.map((p) {
                           return ListTile(
-                            title: Text(p?.produto?.nome ?? ""),
+                            title: Text(p?.produto?.nome ?? "", style: TextStyle(fontSize: 14.5)),
                             subtitle: Text("R\$${c.real.format(p?.produto?.valor)}"),
                             trailing: Wrap(
-                              alignment: WrapAlignment.center,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              runAlignment: WrapAlignment.center,
+                              alignment: WrapAlignment.end,
+                              crossAxisAlignment: WrapCrossAlignment.end,
+                              runAlignment: WrapAlignment.end,
                               direction: Axis.horizontal,
                               children: [
                                 IconButton(
@@ -233,44 +233,108 @@ Future<void> createVendasDialog(context) async {
               onPressed: produtosSelect.isEmpty || clienteSelect.value == null
                   ? null
                   : () async {
-                      num numpedido = DateTime.now().millisecondsSinceEpoch;
+                      pagamento(String modo) async {
+                        num numpedido = DateTime.now().millisecondsSinceEpoch;
 
-                      await c.supabase.from('pedido_venda').insert({
-                        "pedido_venda": numpedido,
-                        "entrega": "Aguardando",
-                        "valor_total": soma.value,
-                        "valor_pago": 0,
-                      }).select();
+                        await c.supabase.from('pedido_venda').insert({
+                          "pedido_venda": numpedido,
+                          "entrega": modo == "entregue e pago"
+                              ? "Entregue"
+                              : modo == "entregue"
+                                  ? "Entregue"
+                                  : "Aguardando",
+                          "valor_total": soma.value,
+                          "valor_pago": modo == "entregue e pago" ? soma.value : 0,
+                        }).select();
 
-                      for (var produto in produtosSelect) {
-                        await c.createVenda(VendasData(
-                          cliente: clienteSelect.value,
-                          tipoEntrega: tipoEntrega.value,
-                          valorVenda: soma.value,
-                          dataVenda: DateTime.now(),
-                          pedido: numpedido,
-                          idCliente: clienteSelect.value?.id,
-                          idProduto: produto?.id,
-                          produto: produto,
-                          status: "Aguardando",
-                          valorTotal: soma.value,
-                          valorPago: 0,
-                          qtd: listapedido
-                              .firstWhere((element) => element?.produto?.id == produto?.id)
-                              ?.qtd,
-                        ));
+                        for (var produto in produtosSelect) {
+                          await c.createVenda(VendasData(
+                            cliente: clienteSelect.value,
+                            tipoEntrega: tipoEntrega.value,
+                            valorVenda: soma.value,
+                            dataVenda: DateTime.now().toUtc(),
+                            pedido: numpedido,
+                            idCliente: clienteSelect.value?.id,
+                            idProduto: produto?.id,
+                            produto: produto,
+                            status: modo == "entregue e pago"
+                                ? "Entregue"
+                                : modo == "entregue"
+                                    ? "Entregue"
+                                    : "Aguardando",
+                            valorTotal: soma.value,
+                            valorPago: modo == "entregue e pago" ? soma.value : 0,
+                            qtd: listapedido
+                                .firstWhere((element) => element?.produto?.id == produto?.id)
+                                ?.qtd,
+                          ));
 
-                        produto?.estoque = produto.estoque! -
-                            int.parse(listapedido
-                                .firstWhere((element) => element?.produto?.id == produto.id)!
-                                .qtd
-                                .toString());
+                          produto?.estoque = produto.estoque! -
+                              int.parse(listapedido
+                                  .firstWhere((element) => element?.produto?.id == produto.id)!
+                                  .qtd
+                                  .toString());
 
-                        await c.updateEstoque(produto!, false);
+                          await c.updateEstoque(produto!, false);
+                        }
+                        if (!context.mounted) return;
+                        Navigator.pop(context);
+                        Navigator.pop(context);
                       }
 
-                      if (!context.mounted) return;
-                      Navigator.pop(context);
+                      return showDialog<void>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text('Modo de Salvamento'),
+                            content: SingleChildScrollView(
+                              child: ListBody(
+                                children: [
+                                  FilledButton.tonal(
+                                    style: ButtonStyle(
+                                      backgroundColor: MaterialStateProperty.all(Colors.green),
+                                    ),
+                                    child: const Text('Entregue e Pago',
+                                        style: TextStyle(color: Colors.white)),
+                                    onPressed: () {
+                                      pagamento("entregue e pago");
+                                    },
+                                  ),
+                                  SizedBox(height: 10),
+                                  FilledButton.tonal(
+                                    style: ButtonStyle(
+                                      backgroundColor: MaterialStateProperty.all(Colors.blue),
+                                    ),
+                                    child: const Text(
+                                      'Entregue',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    onPressed: () {
+                                      pagamento("entregue");
+                                    },
+                                  ),
+                                  SizedBox(height: 10),
+                                  FilledButton.tonal(
+                                    child: const Text('Modo Normal'),
+                                    onPressed: () async {
+                                      pagamento("normal");
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            actions: <Widget>[
+                              TextButton(
+                                child: const Text('Voltar'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      );
                     },
               child: const Text('Salvar'),
             ),

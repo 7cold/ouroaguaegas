@@ -23,6 +23,7 @@ class Controller extends GetxController {
   RxBool loading = false.obs;
 
   DateFormat dateFormatterSimple = DateFormat('HH:mm - dd/MM/yyyy', 'pt_br');
+  DateFormat diferenceHour = DateFormat('HHh mmm - dd/MM/yyyy', 'pt_br');
   DateFormat dateFormatterSimplex = DateFormat('dd/MM/yyyy - HH:mm', 'pt_br');
   DateFormat dateFormatterSimple2 = DateFormat('dd/MM/yyyy', 'pt_br');
   DateFormat dateFormatterMes = DateFormat('MMMM/yyyy', 'pt_br');
@@ -126,7 +127,8 @@ class Controller extends GetxController {
       "id_cliente": vendasData.idCliente,
       "id_produto": vendasData.idProduto,
       "valor_venda": vendasData.valorVenda,
-      "data_venda": vendasData.dataVenda?.toIso8601String(),
+      "data_venda":
+          vendasData.dataVenda?.toUtc().subtract(const Duration(hours: 3)).toIso8601String(),
       "tipo_entrega": vendasData.tipoEntrega,
       "pedido_venda": vendasData.pedido,
       "quantidade": vendasData.qtd,
@@ -209,7 +211,7 @@ class Controller extends GetxController {
 
     vendas.where((p0) => p0.id == vendaData.id).forEach((e) => e = vendaData);
     vendas.refresh();
-    Get.back();
+    Get.forceAppUpdate();
     toastification.show(
       type: ToastificationType.success,
       style: ToastificationStyle.flatColored,
@@ -228,6 +230,8 @@ class Controller extends GetxController {
 
     vendas.where((p0) => p0.id == vendaData.id).forEach((e) => e = vendaData);
     vendas.refresh();
+    Get.forceAppUpdate();
+
     toastification.show(
       type: ToastificationType.success,
       style: ToastificationStyle.flatColored,

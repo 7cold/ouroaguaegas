@@ -219,7 +219,9 @@ Future<void> editarPedidoPagEntrega(context, VendasData vendaData) async {
               onPressed: () async {
                 vendaData.status = entrega.value;
 
-                c.updateEntrega(vendaData, entrega.value!);
+                await c.updateEntrega(vendaData, entrega.value!);
+
+                Get.back();
               },
             ),
           ],

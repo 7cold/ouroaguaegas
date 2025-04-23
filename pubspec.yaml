@@ -34,12 +34,27 @@ dependencies:
   printing: ^5.14.2
   file_saver: ^0.2.14
   dartx: ^0.8.0
+  flutter_slidable: ^4.0.0
+  
+  
+  
+
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
   icons_launcher: ^3.0.0
+  flutter_native_splash:
+
+flutter_native_splash:
+  color: "#ffffff" # cor de fundo
+  color_web: "#ffffff"
+  branding: 'assets/icon/icon.png'
+  image_web: 'assets/icon/icon.png'
+  image_dark_web: 'assets/icon/icon.png'
+  web: true
+
 
 icons_launcher:
   image_path: 'assets/icon/icon.png'

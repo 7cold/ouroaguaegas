@@ -45,7 +45,9 @@ class VendasData {
     status = json['pedido_venda']['entrega'] ?? '';
     valorTotal = json['pedido_venda']['valor_total'] ?? '';
     valorPago = json['pedido_venda']['valor_pago'] ?? '';
-    dataVenda = json['data_venda'] != null ? DateTime.parse(json['data_venda']) : null;
+    dataVenda = json['data_venda'] != null
+        ? DateTime.parse(json['data_venda']).add(Duration(hours: 3))
+        : null;
   }
 
   // Map<String, dynamic> toJson() {

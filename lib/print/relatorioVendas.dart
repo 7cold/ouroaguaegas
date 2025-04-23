@@ -53,6 +53,13 @@ class RelatorioVendasPdf extends StatelessWidget {
         4: pw.FixedColumnWidth(50),
       };
 
+      var t = c.vendas
+          .distinctBy((v) => v.pedido)
+          .where((v) => v.cliente?.id == cliente.id)
+          .map((venda) => venda.valorTotal)
+          .toList()
+          .reduce((a, b) => (a ?? 0) + (b ?? 0));
+
       pdf.addPage(
         pw.Page(
           pageFormat: format,
@@ -195,12 +202,12 @@ class RelatorioVendasPdf extends StatelessWidget {
                                   "Pagos: ${c.real.format(c.vendas.distinctBy((v) => v.pedido).where((v) => v.cliente?.id == cliente.id).fold(0.0, (acc, mapa) => acc + ((mapa.valorPago) ?? 0)))}",
                                 ),
                           pw.Text(
-                            "Em Aberto: ${c.real.format(c.vendas.where((v) => v.cliente?.id == cliente.id).fold(0.0, (acc, mapa) => acc + ((mapa.produto?.valor ?? 0) * (mapa.qtd ?? 0))) - c.vendas.distinctBy((v) => v.pedido).where((v) => v.cliente?.id == cliente.id).fold(0.0, (acc, mapa) => acc + ((mapa.valorPago) ?? 0)))}",
+                            "Em Aberto: ${c.real.format((t ?? 0) - c.vendas.distinctBy((v) => v.pedido).where((v) => v.cliente?.id == cliente.id).fold(0.0, (acc, mapa) => acc + ((mapa.valorPago) ?? 0)))}",
                           ),
                           emAberto.value == true
                               ? pw.SizedBox()
                               : pw.Text(
-                                  "Total em Compras: ${c.real.format(c.vendas.where((v) => v.cliente?.id == cliente.id).fold(0.0, (acc, mapa) => acc + ((mapa.produto?.valor ?? 0) * (mapa.qtd ?? 0))))}",
+                                  "Total em Compras: ${c.real.format(t)}",
                                 ),
                         ])),
               ],
